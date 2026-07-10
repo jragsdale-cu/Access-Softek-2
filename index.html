@@ -468,6 +468,7 @@ function layout(connectors) {
   return positions;
 }
 const STORAGE_KEY = "iscu-accesssoftek-connectormap-data-v5";
+const MAP_SIZES = { S: 720, M: 1040, L: 1360 };
 const clone = (o) => (typeof structuredClone === "function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
 /* ================================================================ */
@@ -511,7 +512,8 @@ function ConnectorMap() {
   const patchConn = useCallback((id, fn) => update((d) => { const c = d.connectors.find((x) => x.id === id); if (c) fn(c); }), [update]);
 
   const connectors = data.connectors;
-  const positions = useMemo(() => layout(connectors), [connectors]);
+  const mapConnectors = useMemo(() => connectors.filter((c) => !c.hideOnMap), [connectors]);
+  const positions = useMemo(() => layout(mapConnectors), [mapConnectors]);
 
   const stats = useMemo(() => {
     let done = 0, total = 0; const perNode = {}; const byStatus = {};
@@ -533,6 +535,7 @@ function ConnectorMap() {
     return true;
   }, [catFilter, statusFilter]);
   const active = selected ? connectors.find((c) => c.id === selected) : null;
+  const mapSize = data.project.mapSize || "M";
 
   const addConnector = () => {
     const id = "c_" + Date.now();
@@ -563,7 +566,7 @@ function ConnectorMap() {
         <div className="hdr-left">
           <div className="eyebrow mono">{data.project.institution}</div>
           <h1>{data.project.platform} <span className="thin">— {data.project.subtitle}</span></h1>
-          <div className="hdr-note mono"><Info size={13} /> {data.project.note} · synced from Asana</div>
+          <div className="hdr-note mono"><Info size={13} /> {data.project.note}</div>
         </div>
         <div className="hdr-right">
           <div className="metric">
@@ -596,6 +599,13 @@ function ConnectorMap() {
             <button className={view === "map" ? "on" : ""} onClick={() => setView("map")}><MapIcon size={14} /> Map</button>
             <button className={view === "list" ? "on" : ""} onClick={() => setView("list")}><ListIcon size={14} /> List</button>
           </div>
+          {view === "map" && (
+            <div className="toggle mono size-toggle" title="Map size">
+              {["S", "M", "L"].map((s) => (
+                <button key={s} className={mapSize === s ? "on" : ""} onClick={() => update((d) => { d.project.mapSize = s; })}>{s}</button>
+              ))}
+            </div>
+          )}
           <button className={`iconbtn mono ${editMode ? "edit-on" : ""}`} onClick={() => setEditMode((e) => !e)}>
             <Pencil size={13} /> {editMode ? "Editing" : "Edit"}
           </button>
@@ -624,9 +634,9 @@ function ConnectorMap() {
       </div>
 
       {view === "map" ? (
-        <Diagram connectors={connectors} positions={positions} stats={stats} hovered={hovered}
+        <Diagram connectors={mapConnectors} positions={positions} stats={stats} hovered={hovered}
           setHovered={setHovered} visible={visible} onSelect={setSelected} selected={selected}
-          narrow={narrow} editMode={editMode} patchConn={patchConn} />
+          narrow={narrow} editMode={editMode} patchConn={patchConn} maxWidth={MAP_SIZES[mapSize]} />
       ) : (
         <ListView connectors={connectors} stats={stats} visible={visible} onSelect={setSelected} />
       )}
@@ -713,9 +723,9 @@ function ProgramRail({ program, connectors, today }) {
 }
 
 /* ----------------------------- diagram ----------------------------- */
-function Diagram({ connectors, positions, stats, hovered, setHovered, visible, onSelect, selected, narrow, editMode, patchConn }) {
+function Diagram({ connectors, positions, stats, hovered, setHovered, visible, onSelect, selected, narrow, editMode, patchConn, maxWidth }) {
   const focus = hovered || selected;
-  const nodeW = narrow ? 132 : 158;
+  const nodeW = narrow ? 116 : 140;
   const boxRef = React.useRef(null);
   const dragRef = React.useRef(null);
   const [dragPos, setDragPos] = React.useState(null);
@@ -746,10 +756,32 @@ function Diagram({ connectors, positions, stats, hovered, setHovered, visible, o
     window.addEventListener("pointerup", onUp);
   };
 
+  const resizeRef = React.useRef(null);
+  const [resizeW, setResizeW] = React.useState(null);
+  const onRMove = React.useCallback((e) => {
+    const r = resizeRef.current; if (!r) return;
+    const w = Math.min(340, Math.max(84, r.w0 + (e.clientX - r.sx)));
+    r.w = w; setResizeW({ id: r.id, w });
+  }, []);
+  const onRUp = React.useCallback(() => {
+    const r = resizeRef.current;
+    window.removeEventListener("pointermove", onRMove);
+    window.removeEventListener("pointerup", onRUp);
+    if (r) patchConn(r.id, (c) => { c.w = Math.round(r.w); });
+    resizeRef.current = null; setResizeW(null);
+  }, [onRMove, patchConn]);
+  const onRDown = (e, id, w0) => {
+    e.stopPropagation(); e.preventDefault();
+    resizeRef.current = { id, sx: e.clientX, w0, w: w0 };
+    window.addEventListener("pointermove", onRMove);
+    window.addEventListener("pointerup", onRUp);
+  };
+
   return (
-    <div className={`diagram ${editMode ? "editing" : ""}`} ref={boxRef}>
+    <div className="diagram-scroll">
+    <div className={`diagram ${editMode ? "editing" : ""}`} ref={boxRef} style={{ width: maxWidth || 1040 }}>
       <div className="grid-bg" />
-      {editMode && <div className="drag-hint mono">Drag any node to reposition · positions save</div>}
+      {editMode && <div className="drag-hint mono">Drag to move · grab a corner to resize · saves automatically</div>}
       <svg className="wires" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
         {(() => {
           const seen = new Set(); const out = [];
@@ -792,16 +824,16 @@ function Diagram({ connectors, positions, stats, hovered, setHovered, visible, o
         const st = STATUS[c.status] || STATUS.not_started; const Dir = (DIRECTION[c.direction] || DIRECTION.both).glyph;
         const vis = visible(c); const dim = focus && focus !== c.id; const prog = Math.round(stats.perNode[c.id] * 100);
         const isDragging = dragPos && dragPos.id === c.id;
+        const nW = (resizeW && resizeW.id === c.id) ? resizeW.w : (c.w || nodeW);
         return (
           <button key={c.id} className={`node ${selected === c.id ? "sel" : ""} ${editMode ? "draggable" : ""} ${isDragging ? "dragging" : ""}`}
-            style={{ left: `${p.x}%`, top: `${p.y}%`, width: nodeW, opacity: !vis ? 0.25 : dim ? 0.4 : 1,
+            style={{ left: `${p.x}%`, top: `${p.y}%`, width: nW, opacity: !vis ? 0.25 : dim ? 0.4 : 1,
               borderColor: selected === c.id ? cat.color : "#E2E8F0",
               boxShadow: selected === c.id ? `0 0 0 2px ${cat.color}, 0 8px 24px rgba(15,27,45,.14)` : undefined }}
             onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered(null)}
             onPointerDown={editMode ? (e) => onDown(e, c.id) : undefined}
             onClick={editMode ? undefined : () => onSelect(c.id)}>
             <span className="node-bar" style={{ background: cat.color }} />
-            <span className="node-icon" style={{ color: cat.color, background: cat.color + "16" }}><Icon size={15} /></span>
             <span className="node-body">
               <span className="node-name">{c.name}</span>
               <span className="node-meta mono">
@@ -812,9 +844,11 @@ function Diagram({ connectors, positions, stats, hovered, setHovered, visible, o
               </span>
               <span className="node-prog"><span style={{ width: `${prog}%`, background: cat.color }} /></span>
             </span>
+            {editMode && <span className="node-resize" title="Drag to resize" onPointerDown={(e) => onRDown(e, c.id, nW)} />}
           </button>
         );
       })}
+    </div>
     </div>
   );
 }
@@ -838,7 +872,7 @@ function ListView({ connectors, stats, visible, onSelect }) {
                 const prog = Math.round(stats.perNode[c.id] * 100);
                 return (
                   <button key={c.id} className="lcard" onClick={() => onSelect(c.id)} style={{ borderLeftColor: cat.color }}>
-                    <div className="lcard-top"><span className="lcard-name">{c.name}</span>{c.crit >= 3 && <Flame size={13} style={{ color: "#D64545" }} />}</div>
+                    <div className="lcard-top"><span className="lcard-name">{c.name}</span>{c.hideOnMap && <ListIcon size={12} style={{ color: "#8A97A8" }} title="Not shown on map" />}{c.crit >= 3 && <Flame size={13} style={{ color: "#D64545" }} />}</div>
                     {c.vendor && <div className="lcard-vendor mono">{c.vendor}</div>}
                     <div className="lcard-sum">{c.summary}</div>
                     <div className="lcard-meta mono">
@@ -917,6 +951,7 @@ function Detail({ c, connectors, editMode, onClose, patchConn, onDelete, progres
               <span className="tag"><DirIcon size={12} /> {dir.label}</span>
               <span className="tag" style={c.crit >= 3 ? { color: "#D64545", borderColor: "#D6454555" } : {}}>{c.crit >= 3 && <Flame size={12} />} {CRIT[c.crit]}</span>
               <span className="tag"><TrendingUp size={12} /> {Math.round(progress * 100)}% done</span>
+              {c.hideOnMap && <span className="tag" style={{ color: "#8A97A8" }}><ListIcon size={12} /> List only</span>}
             </div>
           )}
         </div>
@@ -935,6 +970,9 @@ function Detail({ c, connectors, editMode, onClose, patchConn, onDelete, progres
             <Section icon={Share2} title="Connections" color={cat.color}>
               {editMode ? (
                 <div className="edit-list">
+                  <label className="in-lbl mono" style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                    <input type="checkbox" checked={!c.hideOnMap} onChange={() => set((x) => { x.hideOnMap = !x.hideOnMap; })} /> Show on map (uncheck for list-only)
+                  </label>
                   <label className="in-lbl mono">Comes off (primary line)
                     <select className="in" value={c.parent || ""} onChange={(e) => set((x) => { x.parent = e.target.value || null; })}>
                       <option value="">Access Softek hub</option>
@@ -1165,7 +1203,7 @@ function Modal({ title, onClose, children }) {
 const CSS = `
 :root{--ink:#0F1B2D;--ink-2:#3A4A61;--ink-3:#6B7A90;--line:#E2E8F0;--line-2:#EDF1F6;--canvas:#F5F7FA;--panel:#FFFFFF;--hub:#12324F;}
 *{box-sizing:border-box}
-.app{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--canvas);min-height:100vh;padding:20px;max-width:1200px;margin:0 auto;-webkit-font-smoothing:antialiased;}
+.app{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--canvas);min-height:100vh;padding:20px;max-width:1280px;margin:0 auto;-webkit-font-smoothing:antialiased;}
 .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
 .muted{color:var(--ink-3);}
 
@@ -1211,6 +1249,7 @@ const CSS = `
 .toggle{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden;}
 .toggle button{display:flex;align-items:center;gap:5px;border:none;background:transparent;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--ink-3);font-family:inherit;}
 .toggle button.on{background:var(--hub);color:#fff;}
+.size-toggle button{min-width:32px;justify-content:center;}
 .iconbtn{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:12px;color:var(--ink-2);cursor:pointer;}
 .iconbtn:hover{border-color:#CBD5E1;}
 .iconbtn.edit-on{background:#12324F;color:#fff;border-color:#12324F;}
@@ -1247,7 +1286,8 @@ const CSS = `
 .legend-item:hover{border-color:#CBD5E1;}
 .legend-item .dot{width:8px;height:8px;border-radius:50%;}
 
-.diagram{position:relative;width:100%;aspect-ratio:1/1;max-width:760px;margin:0 auto;}
+.diagram-scroll{width:100%;overflow:auto;padding:2px;}
+.diagram{position:relative;aspect-ratio:1/1;margin:0 auto;}
 .grid-bg{position:absolute;inset:0;border-radius:16px;border:1px solid var(--line);background:linear-gradient(var(--line-2) 1px,transparent 1px) 0 0/40px 40px,linear-gradient(90deg,var(--line-2) 1px,transparent 1px) 0 0/40px 40px,var(--panel);-webkit-mask-image:radial-gradient(circle at 50% 50%,#000 62%,transparent 92%);mask-image:radial-gradient(circle at 50% 50%,#000 62%,transparent 92%);}
 .wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
 .wire-flow{stroke-dasharray:2 8;animation:flow 1.1s linear infinite;}
@@ -1262,6 +1302,9 @@ const CSS = `
 .diagram.editing .node.draggable{cursor:grab;touch-action:none;}
 .diagram.editing .node.draggable:active{cursor:grabbing;}
 .node.dragging{transition:none!important;z-index:8;box-shadow:0 14px 30px rgba(15,27,45,.28)!important;}
+.node-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:9;touch-action:none;}
+.node-resize::after{content:"";position:absolute;right:3px;bottom:3px;width:7px;height:7px;border-right:2px solid #9AA6B4;border-bottom:2px solid #9AA6B4;}
+.node.draggable:hover .node-resize::after{border-color:#12324F;}
 .drag-hint{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#0F1B2D;color:#fff;font-size:10px;padding:4px 11px;border-radius:20px;opacity:.85;z-index:7;pointer-events:none;white-space:nowrap;}
 .link-chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px;}
 .link-chip{display:inline-flex;align-items:center;gap:4px;background:var(--canvas);border:1px solid var(--line);border-radius:14px;padding:3px 5px 3px 10px;font-size:11.5px;}
