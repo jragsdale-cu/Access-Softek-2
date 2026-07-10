@@ -31,7 +31,7 @@ import {
   GraduationCap, ListChecks, Map as MapIcon, List as ListIcon,
   RotateCcw, ArrowRight, ArrowLeft, ArrowLeftRight, Clock, Milestone,
   Info, Flame, PauseCircle, Pencil, Plus, Trash2, Download, Upload,
-  HelpCircle, Check, Copy
+  HelpCircle, Check, Copy, Share2, Pin
 } from "lucide-react";
 
 /* ================================================================
@@ -71,15 +71,16 @@ const DEFAULT_DATA = {
     platform: "Access Softek",
     subtitle: "Online Banking Conversion",
     note: "Running alongside the Corelation KeyStone core conversion",
-    goLive: "2027-01-19",
+    goLive: "2027-01-11",
   },
   program: [
+    { label: "Corelation UAT training", date: "2026-06-12" },
     { label: "Alogent (RDC) kickoff", date: "2026-07-08" },
     { label: "Corelation Mock 1", date: "2026-08-20" },
     { label: "Member data ready to test", date: "2026-08-24" },
     { label: "Corelation Mock 2", date: "2026-10-15" },
     { label: "Dress weekend", date: "2026-12-13" },
-    { label: "Go-live (est.)", date: "2027-01-19" },
+    { label: "Go-live (6am CST)", date: "2027-01-11" },
   ],
   connectors: [
     {
@@ -93,9 +94,9 @@ const DEFAULT_DATA = {
         { name: "Corelation", role: "Core conversion" },
         { name: "Jordan Russell", role: "Access Softek IM" },
       ],
-      start: "2026-01-01", target: "2027-01-19",
+      start: "2026-01-01", target: "2027-01-11",
       milestones: [
-        { label: "KeyBridge ports opened to third-party vendors", date: "2026-04-21", done: true },
+        { label: "KeyBridge ports opened to third-party vendors", date: "2026-04-21", done: true, pin: true },
         { label: "Online banking member data ready to test", date: "2026-08-24", done: false },
         { label: "Corelation Mock 1", date: "2026-08-20", done: false },
         { label: "Corelation Mock 2", date: "2026-10-15", done: false },
@@ -137,8 +138,9 @@ const DEFAULT_DATA = {
       dependencies: "Advance Fraud Solutions agreement; KeyStone hosting decision; mobile app test build.",
     },
     {
-      id: "fraud", name: "Advance Fraud Solutions", vendor: "AFS", category: "security",
+      id: "fraud", name: "Advance Fraud Solutions", vendor: "AFS / Truchecks", category: "security",
       direction: "both", status: "not_started", crit: 2,
+      parent: "rdc", links: [],
       summary: "Fraud screening and duplicate detection tied to remote deposit.",
       dataFlow: "Deposit and check signals scored for fraud and duplicates; decisions returned to the deposit flow.",
       team: [
@@ -227,19 +229,19 @@ const DEFAULT_DATA = {
       dependencies: "Coordinated with the KeyStone deconversion.",
     },
     {
-      id: "shazam", name: "Shazam", vendor: "Debit network", category: "cards",
-      direction: "both", status: "not_started", crit: 1,
-      summary: "Debit network / card processing. Open question on surfacing membership documents from the core.",
-      dataFlow: "Card/network data, with a possible path to display membership documents in online banking.",
+      id: "shazam", name: "Shazam (Document Archive)", vendor: "Cold storage", category: "servicing",
+      direction: "in", status: "not_started", crit: 1,
+      summary: "Cold storage for imaged member documents. Primarily serves the core, and also connects to Access Softek to surface documents to members.",
+      dataFlow: "Archived/imaged documents held via Shazam are made viewable inside online banking.",
       team: [
-        { name: "[Card services]", role: "Owner" },
-        { name: "Shazam", role: "Network" },
+        { name: "[Document / Deposit Ops]", role: "Owner" },
+        { name: "Shazam", role: "Document archive" },
       ],
       start: "2026-06-01", target: "2026-12-12",
       milestones: [],
-      mustDos: [{ label: "Resolve: KeyStone integration to show membership docs from core/Shazam", done: false }],
+      mustDos: [{ label: "Confirm how archived documents surface in Access Softek", done: false }],
       training: { needed: false, plan: "" },
-      dependencies: "Open vendor question.",
+      dependencies: "Primarily a core dependency; document display in online banking is secondary.",
     },
     {
       id: "statements", name: "Statement Vendor", vendor: "Doxim / IMS / XDI", category: "servicing",
@@ -275,7 +277,7 @@ const DEFAULT_DATA = {
       ],
       start: "2026-02-01", target: "2026-11-14",
       milestones: [
-        { label: "Admin training: emails, alerts, roles", date: "2026-03-19", done: true },
+        { label: "Admin training: emails, alerts, roles", date: "2026-03-19", done: true, pin: true },
         { label: "Current limits reviewed", date: "2026-03-24", done: true },
         { label: "System emails, alerts, roles configured", date: "2026-03-26", done: false },
       ],
@@ -290,6 +292,7 @@ const DEFAULT_DATA = {
     {
       id: "notifications", name: "Alerts & Notifications", vendor: "System emails", category: "engagement",
       direction: "out", status: "in_progress", crit: 1,
+      links: ["fraud"],
       summary: "System emails, push, and alerts sent to members.",
       dataFlow: "Event triggers sent out to email / push / SMS channels.",
       team: [{ name: "Kailee VanVoorhis", role: "Owner" }],
@@ -342,6 +345,108 @@ const DEFAULT_DATA = {
       training: { needed: false, plan: "" },
       dependencies: "Access Softek test / production environments.",
     },
+    {
+      id: "savvymoney", name: "SavvyMoney (Credit Score)", vendor: "SavvyMoney", category: "engagement",
+      direction: "in", status: "not_started", crit: 1,
+      links: ["deeptarget"],
+      summary: "In-app credit score, monitoring, and pre-qualified offers. Extends the FiCEP credit-education work into digital banking.",
+      dataFlow: "Scores, factors, and pre-qualified offers flow into online banking for enrolled members.",
+      team: [
+        { name: "[Marketing lead]", role: "Owner" },
+        { name: "John Ragsdale", role: "Sponsor (FiCEP tie-in)" },
+      ],
+      start: "2026-08-01", target: "2027-01-11",
+      milestones: [],
+      mustDos: [
+        { label: "Confirm SavvyMoney as the add-on and scope", done: false },
+        { label: "Tie coaching / FiCEP calls-to-action to the score view", done: false },
+        { label: "Confirm pre-qualified offer eligibility rules", done: false },
+      ],
+      training: { needed: false, plan: "" },
+      dependencies: "Marketing offer rules; lending pre-qualification list.",
+    },
+    {
+      id: "deeptarget", name: "DeepTarget (In-App Marketing)", vendor: "DeepTarget", category: "engagement",
+      direction: "both", status: "not_started", crit: 1,
+      summary: "Targeted in-app messaging and cross-sell placements inside digital banking. Demo reviewed in Feb 2026 — decision pending.",
+      dataFlow: "Member segments and eligibility sent out; engagement and click data returned for measurement.",
+      team: [
+        { name: "Amanda Ellinger", role: "Evaluation" },
+        { name: "[Marketing lead]", role: "Owner" },
+      ],
+      start: "2026-02-18", target: "2027-01-11",
+      milestones: [{ label: "DeepTarget demo reviewed", date: "2026-02-18", done: true }],
+      mustDos: [
+        { label: "Decide whether to move forward with DeepTarget", done: false },
+        { label: "Define member segments from core data", done: false },
+        { label: "Plan first campaign placements", done: false },
+      ],
+      training: { needed: false, plan: "" },
+      dependencies: "Overlaps with SavvyMoney offers and lending pre-qualification.",
+    },
+    {
+      id: "plaid", name: "Plaid (Account Linking)", vendor: "Plaid", category: "payments",
+      direction: "both", status: "not_started", crit: 1,
+      summary: "Connects members' external bank accounts to verify and link them for funding and transfers.",
+      dataFlow: "Account verification plus balance/identity data exchanged with Plaid when a member links an outside account.",
+      team: [{ name: "[Payments lead]", role: "Owner" }],
+      start: "2026-08-01", target: "2027-01-11",
+      milestones: [],
+      mustDos: [
+        { label: "Confirm where linking is used (funding, transfers, account opening)", done: false },
+        { label: "Review data-sharing and privacy terms", done: false },
+      ],
+      training: { needed: false, plan: "" },
+      dependencies: "Supports external transfers and online account opening.",
+    },
+    {
+      id: "creatio", name: "CRM (Creatio)", vendor: "Creatio", category: "engagement",
+      direction: "both", status: "in_progress", crit: 1, links: [],
+      summary: "The live CRM. Digital forms and interactions create leads and cases; service context flows back to members.",
+      dataFlow: "Lead, case, and interaction data exchanged between online banking and Creatio.",
+      team: [{ name: "John Ragsdale", role: "Sponsor" }, { name: "[CRM Administrator]", role: "Owner" }],
+      start: "2026-06-01", target: "2027-01-11",
+      milestones: [],
+      mustDos: [{ label: "Map digital lead sources and case routing", done: false }],
+      training: { needed: false, plan: "" },
+      dependencies: "Creatio landing-page integrations already live.",
+    },
+    {
+      id: "eltropy", name: "Eltropy (Secure Messaging)", vendor: "Eltropy", category: "servicing",
+      direction: "both", status: "not_started", crit: 1, links: ["creatio"],
+      summary: "Digital member communication — secure text, chat, and messaging. From the core vendor list; confirm the Access Softek connection.",
+      dataFlow: "Member messages and conversation data exchanged between online banking, Eltropy, and the CRM.",
+      team: [{ name: "[Member Solutions Lead]", role: "Owner" }],
+      start: "2026-08-01", target: "2027-01-11",
+      milestones: [],
+      mustDos: [{ label: "Confirm Eltropy integrates with Access Softek (vs. core only)", done: false }],
+      training: { needed: false, plan: "" },
+      dependencies: "Ties to Creatio for case routing.",
+    },
+    {
+      id: "zogo", name: "Zogo (Financial Education)", vendor: "Zogo", category: "engagement",
+      direction: "in", status: "not_started", crit: 1, links: [],
+      summary: "In-app financial education and rewards. From the core vendor list; ties to the FiCEP program. Confirm the Access Softek connection.",
+      dataFlow: "Education content and engagement surfaced inside online banking.",
+      team: [{ name: "John Ragsdale", role: "Sponsor (FiCEP tie-in)" }],
+      start: "2026-08-01", target: "2027-01-11",
+      milestones: [],
+      mustDos: [{ label: "Confirm Zogo surfaces inside Access Softek", done: false }],
+      training: { needed: false, plan: "" },
+      dependencies: "",
+    },
+    {
+      id: "rtpfednow", name: "Real-Time Payments (RTP / FedNow)", vendor: "RTP / FedNow", category: "payments",
+      direction: "both", status: "not_started", crit: 1, links: [],
+      summary: "Instant payment rails. From the core vendor list; confirm scope and whether it surfaces in Access Softek at launch.",
+      dataFlow: "Real-time send/receive payment messages exchanged with the RTP and FedNow networks.",
+      team: [{ name: "[Payments lead]", role: "Owner" }],
+      start: "2026-09-01", target: "2027-01-11",
+      milestones: [],
+      mustDos: [{ label: "Decide if RTP / FedNow is in scope for go-live", done: false }],
+      training: { needed: false, plan: "" },
+      dependencies: "",
+    },
   ],
 };
 
@@ -355,13 +460,14 @@ function layout(connectors) {
   const n = connectors.length || 1;
   const positions = {};
   connectors.forEach((c, i) => {
+    if (c.pos && typeof c.pos.x === "number") { positions[c.id] = { x: c.pos.x, y: c.pos.y }; return; }
     const angle = (-90 + (360 / n) * i) * (Math.PI / 180);
     const r = i % 2 === 0 ? 43 : 33;
     positions[c.id] = { x: 50 + r * Math.cos(angle), y: 50 + r * Math.sin(angle) };
   });
   return positions;
 }
-const STORAGE_KEY = "iscu-accesssoftek-connectormap-data-v3";
+const STORAGE_KEY = "iscu-accesssoftek-connectormap-data-v5";
 const clone = (o) => (typeof structuredClone === "function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
 /* ================================================================ */
@@ -434,7 +540,7 @@ function ConnectorMap() {
       id, name: "New connector", vendor: "", category: "servicing", direction: "both",
       status: "not_started", crit: 2, summary: "", dataFlow: "", team: [],
       start: today, target: data.project.goLive, milestones: [], mustDos: [],
-      training: { needed: false, plan: "" }, dependencies: "",
+      training: { needed: false, plan: "" }, dependencies: "", parent: null, links: [],
     }));
     setSelected(id);
   };
@@ -447,6 +553,7 @@ function ConnectorMap() {
     setData(obj); save(obj); setModal(null); setSelected(null);
   };
   const resetBuiltIn = () => { if (confirm("Reset to the built-in Asana snapshot? Your current edits will be replaced.")) { setData(DEFAULT_DATA); save(DEFAULT_DATA); setSelected(null); } };
+  const resetLayout = () => update((d) => d.connectors.forEach((c) => { delete c.pos; }));
 
   return (
     <div className="app">
@@ -462,7 +569,7 @@ function ConnectorMap() {
           <div className="metric">
             <div className="metric-val mono">{daysToGo}</div>
             <div className="metric-lbl mono">days to go-live</div>
-            <div className="metric-sub mono">{fmtDate(data.project.goLive)} · est.</div>
+            <div className="metric-sub mono">{fmtDate(data.project.goLive)}</div>
           </div>
           <div className="metric">
             <div className="metric-val mono">{stats.pct}%</div>
@@ -472,7 +579,7 @@ function ConnectorMap() {
         </div>
       </header>
 
-      <ProgramRail program={data.program} today={today} />
+      <ProgramRail program={data.program} connectors={connectors} today={today} />
 
       <div className="controls">
         <div className="statchips">
@@ -492,12 +599,14 @@ function ConnectorMap() {
           <button className={`iconbtn mono ${editMode ? "edit-on" : ""}`} onClick={() => setEditMode((e) => !e)}>
             <Pencil size={13} /> {editMode ? "Editing" : "Edit"}
           </button>
+          <button className="iconbtn mono" onClick={() => setModal("export")}><Download size={14} /> Export</button>
+          <button className="iconbtn mono" onClick={() => setModal("import")}><Upload size={14} /> Import</button>
           <button className="iconbtn mono" onClick={() => setModal("help")} title="How to update"><HelpCircle size={14} /></button>
         </div>
       </div>
 
       {editMode && (
-        <EditBar data={data} update={update} onAdd={addConnector}
+        <EditBar data={data} update={update} onAdd={addConnector} onResetLayout={resetLayout}
           onExport={() => setModal("export")} onImport={() => setModal("import")} onReset={resetBuiltIn} />
       )}
 
@@ -516,7 +625,8 @@ function ConnectorMap() {
 
       {view === "map" ? (
         <Diagram connectors={connectors} positions={positions} stats={stats} hovered={hovered}
-          setHovered={setHovered} visible={visible} onSelect={setSelected} selected={selected} narrow={narrow} />
+          setHovered={setHovered} visible={visible} onSelect={setSelected} selected={selected}
+          narrow={narrow} editMode={editMode} patchConn={patchConn} />
       ) : (
         <ListView connectors={connectors} stats={stats} visible={visible} onSelect={setSelected} />
       )}
@@ -527,7 +637,7 @@ function ConnectorMap() {
       </footer>
 
       {active && (
-        <Detail c={active} editMode={editMode} onClose={() => setSelected(null)}
+        <Detail c={active} connectors={connectors} editMode={editMode} onClose={() => setSelected(null)}
           patchConn={patchConn} onDelete={() => deleteConnector(active.id)} progress={stats.perNode[active.id]} />
       )}
 
@@ -539,7 +649,7 @@ function ConnectorMap() {
 }
 
 /* ----------------------------- edit bar ----------------------------- */
-function EditBar({ data, update, onAdd, onExport, onImport, onReset }) {
+function EditBar({ data, update, onAdd, onExport, onImport, onReset, onResetLayout }) {
   const [openProgram, setOpenProgram] = useState(false);
   return (
     <div className="editbar">
@@ -568,27 +678,33 @@ function EditBar({ data, update, onAdd, onExport, onImport, onReset }) {
 
       <div className="editbar-row">
         <button className="editbar-btn primary mono" onClick={onAdd}><Plus size={14} /> New connector</button>
-        <button className="editbar-btn mono" onClick={onExport}><Download size={14} /> Export (save file)</button>
-        <button className="editbar-btn mono" onClick={onImport}><Upload size={14} /> Import</button>
+        <button className="editbar-btn ghost mono" onClick={onResetLayout} title="Snap all nodes back to the automatic layout"><RotateCcw size={13} /> Reset layout</button>
         <button className="editbar-btn ghost mono" onClick={onReset}><RotateCcw size={13} /> Reset to Asana snapshot</button>
+        <span className="editbar-hint mono">Export / Import are up top ↑</span>
       </div>
     </div>
   );
 }
 
 /* ----------------------------- program rail ----------------------------- */
-function ProgramRail({ program, today }) {
-  const items = [...program].sort((a, b) => a.date.localeCompare(b.date));
-  const nextIdx = items.findIndex((m) => m.date >= today);
+function ProgramRail({ program, connectors, today }) {
+  const base = (program || []).map((m) => ({ label: m.label, date: m.date, done: m.date < today }));
+  const pinned = [];
+  (connectors || []).forEach((c) => (c.milestones || []).forEach((m) => {
+    if (m.pin && m.date) pinned.push({ label: m.label, date: m.date, done: !!m.done, source: c.name, color: (CATEGORIES[c.category] || {}).color });
+  }));
+  const items = [...base, ...pinned].sort((a, b) => a.date.localeCompare(b.date));
+  const nextIdx = items.findIndex((m) => !m.done && m.date >= today);
   return (
     <div className="rail">
       {items.map((m, i) => {
-        const past = m.date < today; const isNext = i === nextIdx;
+        const isNext = i === nextIdx;
         return (
-          <div key={i} className={`rail-item ${past ? "past" : ""} ${isNext ? "next" : ""}`}>
-            <div className="rail-dot" />
+          <div key={i} className={`rail-item ${m.done ? "past" : ""} ${isNext ? "next" : ""}`}>
+            <div className="rail-dot" style={m.source && !m.done ? { borderColor: m.color, background: "#fff" } : undefined} />
             <div className="rail-date mono">{fmtShort(m.date)}</div>
             <div className="rail-label">{m.label}</div>
+            {m.source && <div className="rail-src mono">{m.source}</div>}
           </div>
         );
       })}
@@ -597,21 +713,68 @@ function ProgramRail({ program, today }) {
 }
 
 /* ----------------------------- diagram ----------------------------- */
-function Diagram({ connectors, positions, stats, hovered, setHovered, visible, onSelect, selected, narrow }) {
+function Diagram({ connectors, positions, stats, hovered, setHovered, visible, onSelect, selected, narrow, editMode, patchConn }) {
   const focus = hovered || selected;
   const nodeW = narrow ? 132 : 158;
+  const boxRef = React.useRef(null);
+  const dragRef = React.useRef(null);
+  const [dragPos, setDragPos] = React.useState(null);
+
+  const posOf = (c) => (dragPos && dragPos.id === c.id ? dragPos : positions[c.id]);
+
+  const onMove = React.useCallback((e) => {
+    const d = dragRef.current; if (!d) return;
+    if (Math.abs(e.clientX - d.sx) > 3 || Math.abs(e.clientY - d.sy) > 3) d.moved = true;
+    const x = Math.min(96, Math.max(4, ((e.clientX - d.rect.left) / d.rect.width) * 100));
+    const y = Math.min(96, Math.max(4, ((e.clientY - d.rect.top) / d.rect.height) * 100));
+    d.x = x; d.y = y; setDragPos({ id: d.id, x, y });
+  }, []);
+  const onUp = React.useCallback(() => {
+    const d = dragRef.current;
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    if (d && d.moved) { const { id, x, y } = d; patchConn(id, (c) => { c.pos = { x, y }; }); }
+    else if (d) { onSelect(d.id); }
+    dragRef.current = null; setDragPos(null);
+  }, [onMove, patchConn, onSelect]);
+  const onDown = (e, id) => {
+    if (!editMode) return;
+    const box = boxRef.current; if (!box || !positions[id]) return;
+    e.preventDefault();
+    dragRef.current = { id, rect: box.getBoundingClientRect(), sx: e.clientX, sy: e.clientY, moved: false, x: positions[id].x, y: positions[id].y };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
   return (
-    <div className="diagram">
+    <div className={`diagram ${editMode ? "editing" : ""}`} ref={boxRef}>
       <div className="grid-bg" />
+      {editMode && <div className="drag-hint mono">Drag any node to reposition · positions save</div>}
       <svg className="wires" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+        {(() => {
+          const seen = new Set(); const out = [];
+          connectors.forEach((c) => (c.links || []).forEach((lid) => {
+            const other = connectors.find((x) => x.id === lid); if (!other) return;
+            const key = [c.id, lid].sort().join("__"); if (seen.has(key)) return; seen.add(key);
+            const a = posOf(c), b = posOf(other); if (!a || !b) return;
+            const bothVis = visible(c) && visible(other);
+            const dim = focus && focus !== c.id && focus !== lid;
+            out.push(<line key={"lnk_" + key} x1={a.x * 10} y1={a.y * 10} x2={b.x * 10} y2={b.y * 10}
+              stroke="#7C8CA1" strokeWidth="1.6" strokeDasharray="1 6" strokeLinecap="round"
+              opacity={!bothVis ? 0.05 : dim ? 0.12 : 0.5} />);
+          }));
+          return out;
+        })()}
         {connectors.map((c) => {
-          const p = positions[c.id]; if (!p) return null;
+          const p = posOf(c); if (!p) return null;
           const cat = CATEGORIES[c.category] || CATEGORIES.servicing;
           const vis = visible(c); const dim = focus && focus !== c.id;
+          const parent = c.parent ? connectors.find((x) => x.id === c.parent && x.id !== c.id) : null;
+          const t = parent ? posOf(parent) : { x: 50, y: 50 };
           const w = c.status === "complete" ? 3.4 : (c.status === "not_started" || c.status === "deferred") ? 1.4 : 2.2;
           const dash = (c.status === "not_started" || c.status === "deferred") ? "5 7" : c.status === "at_risk" ? "10 5" : "0";
           return (
-            <line key={c.id} x1="500" y1="500" x2={p.x * 10} y2={p.y * 10} stroke={cat.color} strokeWidth={w}
+            <line key={c.id} x1={t.x * 10} y1={t.y * 10} x2={p.x * 10} y2={p.y * 10} stroke={cat.color} strokeWidth={w}
               strokeDasharray={dash} strokeLinecap="round" opacity={!vis ? 0.06 : dim ? 0.14 : 0.85}
               className={c.status === "in_progress" && vis && !dim ? "wire-flow" : ""} />
           );
@@ -624,16 +787,19 @@ function Diagram({ connectors, positions, stats, hovered, setHovered, visible, o
       </div>
 
       {connectors.map((c) => {
-        const p = positions[c.id]; if (!p) return null;
+        const p = posOf(c); if (!p) return null;
         const cat = CATEGORIES[c.category] || CATEGORIES.servicing; const Icon = cat.icon;
         const st = STATUS[c.status] || STATUS.not_started; const Dir = (DIRECTION[c.direction] || DIRECTION.both).glyph;
         const vis = visible(c); const dim = focus && focus !== c.id; const prog = Math.round(stats.perNode[c.id] * 100);
+        const isDragging = dragPos && dragPos.id === c.id;
         return (
-          <button key={c.id} className={`node ${selected === c.id ? "sel" : ""}`}
+          <button key={c.id} className={`node ${selected === c.id ? "sel" : ""} ${editMode ? "draggable" : ""} ${isDragging ? "dragging" : ""}`}
             style={{ left: `${p.x}%`, top: `${p.y}%`, width: nodeW, opacity: !vis ? 0.25 : dim ? 0.4 : 1,
               borderColor: selected === c.id ? cat.color : "#E2E8F0",
               boxShadow: selected === c.id ? `0 0 0 2px ${cat.color}, 0 8px 24px rgba(15,27,45,.14)` : undefined }}
-            onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered(null)} onClick={() => onSelect(c.id)}>
+            onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered(null)}
+            onPointerDown={editMode ? (e) => onDown(e, c.id) : undefined}
+            onClick={editMode ? undefined : () => onSelect(c.id)}>
             <span className="node-bar" style={{ background: cat.color }} />
             <span className="node-icon" style={{ color: cat.color, background: cat.color + "16" }}><Icon size={15} /></span>
             <span className="node-body">
@@ -692,11 +858,15 @@ function ListView({ connectors, stats, visible, onSelect }) {
 }
 
 /* ----------------------------- detail drawer ----------------------------- */
-function Detail({ c, editMode, onClose, patchConn, onDelete, progress }) {
+function Detail({ c, connectors, editMode, onClose, patchConn, onDelete, progress }) {
   const cat = CATEGORIES[c.category] || CATEGORIES.servicing; const Icon = cat.icon;
   const st = STATUS[c.status] || STATUS.not_started;
   const dir = DIRECTION[c.direction] || DIRECTION.both; const DirIcon = dir.glyph;
   const set = (fn) => patchConn(c.id, fn);
+  const nameOf = (id) => { const x = (connectors || []).find((o) => o.id === id); return x ? x.name : id; };
+  const others = (connectors || []).filter((o) => o.id !== c.id);
+  const links = c.links || [];
+  const showConn = editMode || c.parent || links.length > 0;
 
   return (
     <>
@@ -761,6 +931,40 @@ function Detail({ c, editMode, onClose, patchConn, onDelete, progress }) {
             {editMode ? <textarea className="in ta" value={c.dataFlow} onChange={(e) => set((x) => { x.dataFlow = e.target.value; })} rows={3} /> : <p>{c.dataFlow}</p>}
           </Section>
 
+          {showConn && (
+            <Section icon={Share2} title="Connections" color={cat.color}>
+              {editMode ? (
+                <div className="edit-list">
+                  <label className="in-lbl mono">Comes off (primary line)
+                    <select className="in" value={c.parent || ""} onChange={(e) => set((x) => { x.parent = e.target.value || null; })}>
+                      <option value="">Access Softek hub</option>
+                      {others.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                    </select>
+                  </label>
+                  <div className="in-lbl mono" style={{ marginTop: 4 }}>Also connects to</div>
+                  {links.length > 0 && (
+                    <div className="link-chips">
+                      {links.map((lid) => (
+                        <span key={lid} className="link-chip">{nameOf(lid)}
+                          <button onClick={() => set((x) => { x.links = (x.links || []).filter((i) => i !== lid); })}><X size={11} /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <select className="in" value="" onChange={(e) => { const v = e.target.value; if (v) set((x) => { x.links = [...(x.links || []), v]; }); }}>
+                    <option value="">＋ Add a connection…</option>
+                    {others.filter((o) => !links.includes(o.id)).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <div className="rel-read">
+                  <p><span className="rel-lbl mono">COMES OFF</span> {c.parent ? nameOf(c.parent) : "Access Softek hub"}</p>
+                  {links.length > 0 && <p><span className="rel-lbl mono">ALSO CONNECTS TO</span> {links.map(nameOf).join(", ")}</p>}
+                </div>
+              )}
+            </Section>
+          )}
+
           <Section icon={Clock} title="Timeline" color={cat.color}>
             {editMode ? (
               <div className="edit-dates">
@@ -801,18 +1005,20 @@ function Detail({ c, editMode, onClose, patchConn, onDelete, progress }) {
           </Section>
 
           <Section icon={Milestone} title="Milestones" color={cat.color}>
+            {editMode && <div className="edit-note mono">Pin (<Pin size={10} style={{ verticalAlign: "middle" }} />) shows a milestone on the main timeline up top.</div>}
             <div className={editMode ? "edit-list" : "checklist"}>
               {c.milestones.map((m, i) => editMode ? (
                 <div key={i} className="edit-row">
                   <input type="checkbox" checked={!!m.done} onChange={() => set((x) => { x.milestones[i].done = !x.milestones[i].done; })} />
                   <input className="in" value={m.label} onChange={(e) => set((x) => { x.milestones[i].label = e.target.value; })} placeholder="Milestone" />
                   <input className="in in-date" type="date" value={m.date || ""} onChange={(e) => set((x) => { x.milestones[i].date = e.target.value; })} />
+                  <button className={`pinbtn ${m.pin ? "on" : ""}`} title={m.pin ? "On main timeline — click to remove" : "Pin to main timeline"} onClick={() => set((x) => { x.milestones[i].pin = !x.milestones[i].pin; })}><Pin size={13} /></button>
                   <button className="trash" onClick={() => set((x) => { x.milestones.splice(i, 1); })}><Trash2 size={14} /></button>
                 </div>
               ) : (
                 <button key={i} className={`check ${m.done ? "done" : ""}`} onClick={() => set((x) => { x.milestones[i].done = !x.milestones[i].done; })}>
                   {m.done ? <CheckCircle2 size={17} style={{ color: cat.color }} /> : <Circle size={17} />}
-                  <span className="check-label">{m.label}</span><span className="check-date mono">{fmtShort(m.date)}</span>
+                  <span className="check-label">{m.label}{m.pin && <Pin size={11} className="pin-ind" />}</span><span className="check-date mono">{fmtShort(m.date)}</span>
                 </button>
               ))}
               {editMode && <button className="add-row mono" onClick={() => set((x) => { x.milestones.push({ label: "", date: "", done: false }); })}><Plus size={13} /> Add milestone</button>}
@@ -987,6 +1193,12 @@ const CSS = `
 .rail-date{font-size:11px;font-weight:600;margin-top:7px;}
 .rail-item.next .rail-date{color:#12324F;}
 .rail-label{font-size:10.5px;color:var(--ink-3);line-height:1.25;margin-top:2px;padding-right:10px;}
+.rail-src{font-size:9px;color:#9AA6B4;margin-top:2px;font-style:italic;}
+.pinbtn{background:none;border:1px solid var(--line);color:var(--ink-3);cursor:pointer;padding:6px;border-radius:6px;flex-shrink:0;display:flex;}
+.pinbtn.on{background:#12324F;color:#fff;border-color:#12324F;}
+.pinbtn:hover{border-color:#12324F;}
+.pin-ind{margin-left:6px;color:#12324F;opacity:.7;vertical-align:middle;}
+.edit-note{font-size:10px;color:var(--ink-3);margin-bottom:8px;display:flex;align-items:center;gap:4px;}
 
 .controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .statchips{display:flex;gap:8px;flex-wrap:wrap;}
@@ -1008,6 +1220,7 @@ const CSS = `
 .editbar-row + .editbar-row{margin-top:10px;}
 .editbar-title{font-size:10px;letter-spacing:.12em;color:#8FA0B6;}
 .editbar-link{background:none;border:none;color:#8FB4E0;font-size:11px;cursor:pointer;text-decoration:underline;}
+.editbar-hint{font-size:10px;color:#8FA0B6;align-self:center;margin-left:auto;}
 .editbar-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;}
 .editbar-btn:hover{background:rgba(255,255,255,.16);}
 .editbar-btn.primary{background:#2F6FBF;border-color:#2F6FBF;}
@@ -1046,6 +1259,17 @@ const CSS = `
 .hub-sub{font-size:7px;letter-spacing:.1em;opacity:.7;margin-top:5px;}
 .node{position:absolute;transform:translate(-50%,-50%);z-index:4;display:flex;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;box-shadow:0 3px 10px rgba(15,27,45,.06);transition:transform .15s,box-shadow .15s,opacity .2s;font-family:inherit;}
 .node:hover{transform:translate(-50%,-50%) translateY(-2px);box-shadow:0 10px 24px rgba(15,27,45,.16);}
+.diagram.editing .node.draggable{cursor:grab;touch-action:none;}
+.diagram.editing .node.draggable:active{cursor:grabbing;}
+.node.dragging{transition:none!important;z-index:8;box-shadow:0 14px 30px rgba(15,27,45,.28)!important;}
+.drag-hint{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#0F1B2D;color:#fff;font-size:10px;padding:4px 11px;border-radius:20px;opacity:.85;z-index:7;pointer-events:none;white-space:nowrap;}
+.link-chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px;}
+.link-chip{display:inline-flex;align-items:center;gap:4px;background:var(--canvas);border:1px solid var(--line);border-radius:14px;padding:3px 5px 3px 10px;font-size:11.5px;}
+.link-chip button{background:none;border:none;cursor:pointer;color:var(--ink-3);display:flex;padding:2px;border-radius:50%;}
+.link-chip button:hover{background:#F6E0DE;color:#B04A44;}
+.rel-read p{font-size:13px;margin:0 0 6px;display:flex;gap:8px;align-items:baseline;}
+.rel-read p:last-child{margin-bottom:0;}
+.rel-lbl{font-size:9px;letter-spacing:.09em;color:var(--ink-3);flex-shrink:0;}
 .node-bar{width:3px;flex-shrink:0;}
 .node-icon{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;margin:8px 0 8px 8px;border-radius:7px;align-self:flex-start;}
 .node-body{display:flex;flex-direction:column;gap:3px;padding:8px 10px 8px 8px;min-width:0;flex:1;}
