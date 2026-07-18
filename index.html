@@ -31,7 +31,7 @@ import {
   GraduationCap, ListChecks, Map as MapIcon, List as ListIcon,
   RotateCcw, ArrowRight, ArrowLeft, ArrowLeftRight, Clock, Milestone,
   Info, Flame, PauseCircle, Pencil, Plus, Trash2, Download, Upload,
-  HelpCircle, Check, Copy, Share2, Pin
+  HelpCircle, Check, Copy, Share2, Pin, Search
 } from "lucide-react";
 
 /* ================================================================
@@ -478,6 +478,7 @@ function ConnectorMap() {
   const [hovered, setHovered] = useState(null);
   const [catFilter, setCatFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
+  const [query, setQuery] = useState("");
   const [view, setView] = useState(() => (typeof window !== "undefined" && window.innerWidth < 760 ? "list" : "map"));
   const [narrow, setNarrow] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -532,8 +533,14 @@ function ConnectorMap() {
   const visible = useCallback((c) => {
     if (catFilter && c.category !== catFilter) return false;
     if (statusFilter && c.status !== statusFilter) return false;
+    if (query) {
+      const q = query.toLowerCase();
+      const catLabel = (CATEGORIES[c.category] || {}).label || "";
+      const hay = (c.name + " " + (c.vendor || "") + " " + (c.summary || "") + " " + catLabel).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
-  }, [catFilter, statusFilter]);
+  }, [catFilter, statusFilter, query]);
   const active = selected ? connectors.find((c) => c.id === selected) : null;
   const mapSize = data.project.mapSize || "M";
 
@@ -619,6 +626,12 @@ function ConnectorMap() {
         <EditBar data={data} update={update} onAdd={addConnector} onResetLayout={resetLayout}
           onExport={() => setModal("export")} onImport={() => setModal("import")} onReset={resetBuiltIn} />
       )}
+
+      <div className="searchbar">
+        <Search size={14} />
+        <input className="search-in" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search connectors, vendors, notes..." />
+        {query && <button className="search-clear" onClick={() => setQuery("")}><X size={13} /></button>}
+      </div>
 
       <div className="legend">
         {Object.entries(CATEGORIES).map(([k, v]) => {
@@ -1281,6 +1294,11 @@ const CSS = `
 .trash:hover{background:#F6E7E6;}
 
 .legend{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;}
+.searchbar{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 12px;margin-bottom:12px;color:var(--ink-3);}
+.searchbar:focus-within{border-color:#2F6FBF;box-shadow:0 0 0 2px rgba(47,111,191,.14);}
+.search-in{flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--ink);min-width:0;}
+.search-clear{background:none;border:none;cursor:pointer;color:var(--ink-3);display:flex;padding:2px;border-radius:50%;}
+.search-clear:hover{background:var(--line-2);color:var(--ink);}
 .legend-item{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;transition:.15s;}
 .legend-item .mono{font-size:11px;color:var(--ink-2);}
 .legend-item:hover{border-color:#CBD5E1;}
